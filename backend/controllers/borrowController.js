@@ -7,10 +7,10 @@ const FineReceipt = require('../models/fineReceiptModel');
 // Lấy danh sách mượn trả
 exports.getBorrows = async (req, res) => {
   try {
-    const borrows = await Borrow.find().populate('memberId').populate({
-      path: 'bookId',
-      populate: { path: 'bookId', model: 'Book' }
-    });
+    const borrows = await Borrow.find()
+      .populate('member', 'fullName email phone')
+      .populate('book', 'bookCode title category authors')
+      .sort({ createdAt: -1 });
     res.status(200).json({ count: borrows.length, data: borrows });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -20,10 +20,9 @@ exports.getBorrows = async (req, res) => {
 // Lấy thông tin mượn trả theo ID
 exports.getBorrowById = async (req, res) => {
   try {
-    const borrow = await Borrow.findById(req.params.id).populate('memberId').populate({
-      path: 'bookId',
-      populate: { path: 'bookId', model: 'Book' }
-    });
+    const borrow = await Borrow.findById(req.params.id)
+      .populate('member', 'fullName email phone')
+      .populate('book', 'bookCode title category authors');
     if (!borrow) return res.status(404).json({ message: 'Borrow record not found' });
     res.status(200).json(borrow);
   } catch (error) {
@@ -34,7 +33,8 @@ exports.getBorrowById = async (req, res) => {
 // Tạo mới bản ghi mượn sách (theo BookCopy)
 exports.createBorrow = async (req, res) => {
   try {
-    const { member, book, dueDate, note } = req.body;
+    console.log('BORROW DATA:', req.body);
+    const { member, book, borrowDate, dueDate, note } = req.body;
     if (!member || !book || !dueDate) {
       return res.status(400).json({ message: 'Member, book and due date are required' });
     }
@@ -62,7 +62,7 @@ exports.createBorrow = async (req, res) => {
     const borrow = new Borrow({
       member,
       book,
-      borrowDate: new Date(),
+      borrowDate: borrowDate ? new Date(borrowDate) : new Date(),
       dueDate,
       note
     });
@@ -71,6 +71,7 @@ exports.createBorrow = async (req, res) => {
     const savedBorrow = await borrow.save();
     res.status(201).json(savedBorrow);
   } catch (error) {
+    console.error('CREATE BORROW ERROR:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -129,7 +130,7 @@ exports.getAllBorrows = async (req, res) => {
   try {
     const borrows = await Borrow.find()
       .populate('member', 'fullName email phone')
-      .populate('book', 'bookCode title authors')
+      .populate('book', 'bookCode title category authors')
       .sort({ createdAt: -1 });
     res.status(200).json(borrows);
   } catch (error) {
@@ -142,7 +143,7 @@ exports.getMemberBorrows = async (req, res) => {
   try {
     const memberId = req.params.memberId;
     const borrows = await Borrow.find({ member: memberId })
-      .populate('book', 'bookCode title authors')
+      .populate('book', 'bookCode title category authors')
       .sort({ createdAt: -1 });
     res.status(200).json(borrows);
   } catch (error) {

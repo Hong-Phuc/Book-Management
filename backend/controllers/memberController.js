@@ -153,13 +153,13 @@ exports.deleteMember = async (req, res) => {
 // Tìm kiếm thành viên
 exports.searchMembers = async (req, res) => {
   try {
-    const { query } = req.query;
+    const q = req.query.q || '';
     const members = await Member.find({
       $or: [
-        { fullName: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } },
-        { phone: { $regex: query, $options: 'i' } },
-        { address: { $regex: query, $options: 'i' } }
+        { fullName: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } },
+        { phone: { $regex: q, $options: 'i' } },
+        { address: { $regex: q, $options: 'i' } }
       ]
     }).sort({ createdAt: -1 });
     res.status(200).json(members);

@@ -36,13 +36,12 @@ exports.createBook = async (req, res) => {
             publisher,
             publishYear,
             price,
-            location,
             quantity,
             description
         } = req.body;
 
         // Validate required fields
-        if (!bookCode || !title || !authors || !category || !publisher || !publishYear || !price || !location || !quantity) {
+        if (!bookCode || !title || !authors || !category || !publisher || !publishYear || !price || !quantity) {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
@@ -61,7 +60,6 @@ exports.createBook = async (req, res) => {
             publisher,
             publishYear,
             price,
-            location,
             quantity,
             availableQuantity: quantity,
             description
@@ -84,7 +82,6 @@ exports.updateBook = async (req, res) => {
             publisher,
             publishYear,
             price,
-            location,
             quantity,
             description
         } = req.body;
@@ -112,7 +109,6 @@ exports.updateBook = async (req, res) => {
         book.publisher = publisher || book.publisher;
         book.publishYear = publishYear || book.publishYear;
         book.price = price || book.price;
-        book.location = location || book.location;
         book.quantity = quantity || book.quantity;
         book.availableQuantity = newAvailableQuantity;
         book.description = description || book.description;
@@ -152,18 +148,16 @@ exports.deleteBook = async (req, res) => {
 // Search books
 exports.searchBooks = async (req, res) => {
     try {
-        const { query } = req.query;
+        const q = req.query.q || '';
         const books = await Book.find({
             $or: [
-                { title: { $regex: query, $options: 'i' } },
-                { bookCode: { $regex: query, $options: 'i' } },
-                { authors: { $regex: query, $options: 'i' } },
-                { category: { $regex: query, $options: 'i' } },
-                { publisher: { $regex: query, $options: 'i' } }
+                { title: { $regex: q, $options: 'i' } },
+                { bookCode: { $regex: q, $options: 'i' } }
             ]
         }).sort({ createdAt: -1 });
         res.status(200).json(books);
     } catch (error) {
+        console.error('SEARCH BOOKS ERROR:', error);
         res.status(500).json({ message: error.message });
     }
 }; 

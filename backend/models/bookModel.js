@@ -36,11 +36,6 @@ const bookSchema = new mongoose.Schema({
         required: true,
         min: 0
     },
-    location: {
-        type: String,
-        required: true,
-        trim: true
-    },
     quantity: {
         type: Number,
         required: true,
