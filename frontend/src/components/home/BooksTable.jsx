@@ -25,16 +25,13 @@ const BooksTable = ({ books }) => {
       <table className='w-full border-separate border-spacing-2'>
         <thead>
           <tr>
-            <th className='border border-slate-600 rounded-md'>No</th>
-            <th className='border border-slate-600 rounded-md'>Title</th>
-            <th className='border border-slate-600 rounded-md max-md:hidden'>
-              Author
-            </th>
-            <th className='border border-slate-600 rounded-md max-md:hidden'>
-              Publish Year
-            </th>
-            <th className='border border-slate-600 rounded-md'>Genre</th>
-            <th className='border border-slate-600 rounded-md'>Operations</th>
+            <th className='border border-slate-700 rounded-md text-center'>No</th>
+            <th className='border border-slate-700 rounded-md text-center'>Mã sách</th>
+            <th className='border border-slate-700 rounded-md text-center'>Title</th>
+            <th className='border border-slate-700 rounded-md text-center max-md:hidden'>Author</th>
+            <th className='border border-slate-700 rounded-md text-center max-md:hidden'>Publish Year</th>
+            <th className='border border-slate-700 rounded-md text-center'>Genre</th>
+            <th className='border border-slate-700 rounded-md text-center'>Operations</th>
           </tr>
         </thead>
         <tbody>
@@ -42,6 +39,9 @@ const BooksTable = ({ books }) => {
             <tr key={book._id} className='h-8'>
               <td className='border border-slate-700 rounded-md text-center'>
                 {index + 1}
+              </td>
+              <td className='border border-slate-700 rounded-md text-center'>
+                {book.bookCode}
               </td>
               <td className='border border-slate-700 rounded-md text-center'>
                 {book.title}

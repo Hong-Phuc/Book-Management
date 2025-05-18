@@ -33,9 +33,29 @@ const borrowSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    prepaid: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    paid: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    price: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     note: {
         type: String,
         trim: true
+    },
+    quantity: {
+        type: Number,
+        default: 1,
+        min: 1
     },
     createdAt: {
         type: Date,

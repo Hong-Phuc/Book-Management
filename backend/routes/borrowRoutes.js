@@ -23,4 +23,7 @@ router.get('/book/:bookId', borrowController.getBookBorrows);
 // Get overdue borrows
 router.get('/overdue', borrowController.getOverdueBorrows);
 
+// Thêm route cập nhật tiền đã trả
+router.patch('/:id/update-paid', borrowController.updatePaid);
+
 module.exports = router; 

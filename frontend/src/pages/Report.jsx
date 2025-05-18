@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5555/reports';
+const API_URL = 'http://localhost:5000/api/reports';
 
 const Report = () => {
   const [borrowStats, setBorrowStats] = useState([]);
@@ -22,7 +22,7 @@ const Report = () => {
 
   return (
     <div className='p-4'>
-      <h1 className='text-2xl mb-4'>Báo Cáo Thống Kê</h1>
+      <h1 className='text-2xl mb-4'>Report</h1>
       <div className='mb-8'>
         <h2 className='text-xl mb-2'>BM7.1: Thống kê mượn theo thể loại</h2>
         <input value={month} onChange={e => setMonth(e.target.value)} placeholder='Tháng (MM-YYYY)' className='border px-2 mr-2'/>

@@ -20,7 +20,6 @@ const initialForm = {
   publisher: '',
   publishYear: '',
   price: '',
-  location: '',
   quantity: '',
   description: ''
 };
@@ -223,7 +222,6 @@ const Books = () => {
             <div><b>NXB:</b> {selectedBook.publisher}</div>
             <div><b>Năm XB:</b> {selectedBook.publishYear}</div>
             <div><b>Trị giá:</b> {selectedBook.price?.toLocaleString()} VNĐ</div>
-            <div><b>Vị trí:</b> {selectedBook.location}</div>
             <div><b>Số lượng:</b> {selectedBook.quantity}</div>
             <div><b>Còn lại:</b> {selectedBook.availableQuantity}</div>
             <div><b>Trạng thái:</b> <Badge variant={selectedBook.status === 'available' ? 'success' : 'error'}>{selectedBook.status === 'available' ? 'Còn' : 'Hết'}</Badge></div>
@@ -258,10 +256,6 @@ const Books = () => {
             <div>
               <label className="block text-sm font-medium">Trị giá (VNĐ)</label>
               <input name="price" value={form.price} onChange={handleChange} required type="number" min="0" className="w-full border rounded px-2 py-1" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Vị trí</label>
-              <input name="location" value={form.location} onChange={handleChange} required className="w-full border rounded px-2 py-1" />
             </div>
             <div>
               <label className="block text-sm font-medium">Số lượng bản</label>

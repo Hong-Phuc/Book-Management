@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import CreatableSelect from 'react-select/creatable';
 
-const API_URL = 'http://localhost:5555/books';
+const API_URL = 'http://localhost:5000/api/books';
 
 const inputStyle = {
   padding: '8px',
@@ -34,7 +34,7 @@ const CreateBooks = () => {
     publishYear: '',
     price: '',
     quantity: 1,
-    description: ''
+    description: '',
   });
   const [loading, setLoading] = useState(false);
   const [tagOptions, setTagOptions] = useState([]);
@@ -57,6 +57,28 @@ const CreateBooks = () => {
       });
   }, []);
 
+  useEffect(() => {
+    const generateBookCode = async () => {
+      if (!form.category || !form.publishYear) return;
+      try {
+        const res = await axios.get(`${API_URL}?category=${form.category}&publishYear=${form.publishYear}`);
+        const books = Array.isArray(res.data.data) ? res.data.data : res.data;
+        let maxOrder = 0;
+        books.forEach(b => {
+          const match = b.bookCode && b.bookCode.match(/^[A-Z]\d{4}-(\d{5})$/);
+          if (match) {
+            const order = parseInt(match[1]);
+            if (order > maxOrder) maxOrder = order;
+          }
+        });
+        const nextOrder = (maxOrder + 1).toString().padStart(5, '0');
+        setForm(f => ({ ...f, code: `${form.category}${form.publishYear}-${nextOrder}` }));
+      } catch {}
+    };
+    generateBookCode();
+    // eslint-disable-next-line
+  }, [form.category, form.publishYear]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -69,7 +91,7 @@ const CreateBooks = () => {
     e.preventDefault();
     setLoading(true);
     const data = {
-      code: form.code,
+      bookCode: form.code,
       title: form.title,
       authors: form.authors.split(',').map(a => a.trim()).filter(Boolean),
       category: form.category,
@@ -84,7 +106,8 @@ const CreateBooks = () => {
       enqueueSnackbar('Book Created successfully', { variant: 'success' });
       navigate('/');
     } catch (e) {
-      enqueueSnackbar('Error', { variant: 'error' });
+      const msg = e.response?.data?.message || 'Error';
+      enqueueSnackbar(msg, { variant: 'error' });
       console.log(e);
     }
     setLoading(false);
@@ -99,7 +122,14 @@ const CreateBooks = () => {
         <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
           <div className='my-2'>
             <label className='text-xl mr-4 text-gray-500'>Mã sách</label>
-            <input name='code' value={form.code} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full' />
+            <input
+              type="text"
+              name="code"
+              placeholder="Mã sách (bookCode)"
+              value={form.code}
+              readOnly
+              className="input bg-gray-100"
+            />
           </div>
           <div className='my-2'>
             <label className='text-xl mr-4 text-gray-500'>Tên sách</label>

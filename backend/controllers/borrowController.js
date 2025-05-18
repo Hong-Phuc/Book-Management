@@ -34,9 +34,9 @@ exports.getBorrowById = async (req, res) => {
 exports.createBorrow = async (req, res) => {
   try {
     console.log('BORROW DATA:', req.body);
-    const { member, book, borrowDate, dueDate, note } = req.body;
-    if (!member || !book || !dueDate) {
-      return res.status(400).json({ message: 'Member, book and due date are required' });
+    const { member, books, borrowDate, dueDate, note, prepaid } = req.body;
+    if (!member || !Array.isArray(books) || books.length === 0 || !dueDate) {
+      return res.status(400).json({ message: 'Member, books and due date are required' });
     }
     const memberExists = await Member.findById(member);
     if (!memberExists) {
@@ -45,31 +45,48 @@ exports.createBorrow = async (req, res) => {
     if (memberExists.status !== 'active') {
       return res.status(400).json({ message: 'Member is not active' });
     }
-    const bookExists = await Book.findById(book);
-    if (!bookExists) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    if (bookExists.availableQuantity <= 0) {
-      return res.status(400).json({ message: 'Book is not available' });
-    }
+    // Đếm số lượng sách đang mượn
     const activeBorrows = await Borrow.countDocuments({
       member,
       status: 'borrowed'
     });
-    if (activeBorrows >= 5) {
-      return res.status(400).json({ message: 'Member has reached maximum borrow limit' });
+    let totalBorrow = activeBorrows;
+    let createdBorrows = [];
+    let prepaidLeft = prepaid || 0;
+    for (const [bookIdx, b] of books.entries()) {
+      const { bookId, quantity } = b;
+      const bookExists = await Book.findById(bookId);
+      if (!bookExists) {
+        return res.status(404).json({ message: `Book not found: ${bookId}` });
+      }
+      if (bookExists.availableQuantity < (quantity || 1)) {
+        return res.status(400).json({ message: `Book is not available: ${bookExists.title}` });
+      }
+      // Phân bổ tiền trả trước cho từng sách
+      let paid = 0;
+      if (prepaidLeft > 0) {
+        const totalPrice = (bookExists.price || 0) * (quantity || 1);
+        paid = Math.min(prepaidLeft, totalPrice);
+        prepaidLeft -= paid;
+      }
+      const borrow = new Borrow({
+        member,
+        book: bookId,
+        borrowDate: borrowDate ? new Date(borrowDate) : new Date(),
+        dueDate,
+        note,
+        prepaid: paid,
+        paid: paid,
+        price: bookExists.price || 0,
+        quantity: quantity || 1
+      });
+      bookExists.availableQuantity -= (quantity || 1);
+      await bookExists.save();
+      const savedBorrow = await borrow.save();
+      createdBorrows.push(savedBorrow);
+      totalBorrow += (quantity || 1);
     }
-    const borrow = new Borrow({
-      member,
-      book,
-      borrowDate: borrowDate ? new Date(borrowDate) : new Date(),
-      dueDate,
-      note
-    });
-    bookExists.availableQuantity -= 1;
-    await bookExists.save();
-    const savedBorrow = await borrow.save();
-    res.status(201).json(savedBorrow);
+    res.status(201).json(createdBorrows);
   } catch (error) {
     console.error('CREATE BORROW ERROR:', error);
     res.status(500).json({ message: error.message });
@@ -82,6 +99,13 @@ exports.returnBook = async (req, res) => {
     const borrow = await Borrow.findById(req.params.id);
     if (!borrow) {
       return res.status(404).json({ message: 'Borrow record not found' });
+    }
+    // Kiểm tra còn nợ không
+    const total = (borrow.price || 0) * (borrow.quantity || 1) + (borrow.fine || 0);
+    const paid = typeof borrow.paid === 'number' ? borrow.paid : (borrow.prepaid || 0);
+    const totalOwed = Math.max(0, total - paid);
+    if (totalOwed > 0) {
+      return res.status(400).json({ message: 'Chưa trả đủ nợ, không thể trả sách' });
     }
     if (borrow.status === 'returned') {
       return res.status(400).json({ message: 'Book has already been returned' });
@@ -106,7 +130,7 @@ exports.returnBook = async (req, res) => {
     borrow.fine = fine;
     await borrow.save();
     const book = await Book.findById(borrow.book);
-    book.availableQuantity += 1;
+    book.availableQuantity += borrow.quantity || 1;
     await book.save();
     res.status(200).json(borrow);
   } catch (error) {
@@ -176,6 +200,24 @@ exports.getOverdueBorrows = async (req, res) => {
       .populate('book', 'bookCode title authors')
       .sort({ dueDate: 1 });
     res.status(200).json(borrows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Thêm route cập nhật tiền đã trả
+exports.updatePaid = async (req, res) => {
+  try {
+    const { paid } = req.body;
+    const borrow = await Borrow.findById(req.params.id);
+    if (!borrow) return res.status(404).json({ message: 'Borrow not found' });
+    borrow.paid = paid;
+    await borrow.save();
+    // Populate lại thông tin book và member để trả về dữ liệu đầy đủ cho frontend
+    const populatedBorrow = await Borrow.findById(borrow._id)
+      .populate('book', 'bookCode title category authors price')
+      .populate('member', 'fullName email phone');
+    res.json(populatedBorrow);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Spinner from '../Spinner';
 
-const API_URL = 'http://localhost:5555/books';
+const API_URL = 'http://localhost:5000/api/books';
 
 const BookModal = ({ book, onClose }) => {
   const [copiesInfo, setCopiesInfo] = useState(null);
@@ -67,19 +67,25 @@ const BookModal = ({ book, onClose }) => {
           <span className='text-gray-500'>Trị giá:</span>
           <span>{book.price}</span>
         </div>
+        <div className='flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mb-1 mt-4'>
+          {loading ? (
+            <Spinner />
+          ) : copiesInfo ? (
+            <>
+              <span>Số lượng: <b>{copiesInfo.total}</b></span>
+              <span>Còn lại: <b>{copiesInfo.available}</b></span>
+            </>
+          ) : (
+            <>
+              <span>Số lượng: <b>{book.quantity ?? '-'}</b></span>
+              <span>Còn lại: <b>{book.availableQuantity ?? '-'}</b></span>
+            </>
+          )}
+        </div>
         <div className='mt-4'>
           <label className='block mb-2 font-semibold'>Description:</label>
           <p className='whitespace-pre-line'>{book.description || 'Chưa có mô tả.'}</p>
         </div>
-        {loading ? (
-          <Spinner />
-        ) : copiesInfo && (
-          <div className='mt-4'>
-             <label className='block mb-2 font-semibold'>Copies Info:</label>
-            <p>Total Copies: {copiesInfo.total}</p>
-            <p>Available Copies: {copiesInfo.available}</p>
-          </div>
-        )}
       </div>
     </div>
   );

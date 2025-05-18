@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5555/fine-receipts';
+const API_URL = 'http://localhost:5000/api/fine-receipts';
 
 const FineReceipts = () => {
   const [receipts, setReceipts] = useState([]);
@@ -34,7 +34,7 @@ const FineReceipts = () => {
 
   return (
     <div className='p-4'>
-      <h1 className='text-2xl mb-4'>Phiếu Thu Tiền Phạt</h1>
+      <h1 className='text-2xl mb-4'>Penalty tickett</h1>
       <form onSubmit={handleSubmit} className='mb-4 flex gap-2'>
         <input name='memberId' value={form.memberId} onChange={handleChange} placeholder='Mã độc giả' required className='border px-2'/>
         <input name='totalDebt' value={form.totalDebt} onChange={handleChange} placeholder='Tổng nợ' required className='border px-2'/>

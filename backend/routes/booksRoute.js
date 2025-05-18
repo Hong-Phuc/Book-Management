@@ -1,6 +1,6 @@
 import express from 'express';
 import { Book } from '../models/bookModel.js';
-import { BookCopy } from '../models/bookCopyModel.js';
+import BookCopy from '../models/bookCopyModel.js';
 
 const router = express.Router();
 

@@ -10,7 +10,8 @@ import Button from '../components/Button';
 import Loading from '../components/Loading';
 import EmptyState from '../components/EmptyState';
 import Card from '../components/Card';
-import { getAllMembers, createMember, updateMember, deleteMember, searchMembers } from '../services/memberService';
+import { getAllMembers, createMember, updateMember, deleteMember, searchMembers, getMemberStats } from '../services/memberService';
+import axios from 'axios';
 
 const initialForm = {
   fullName: '',
@@ -51,6 +52,9 @@ const Members = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
+  const [editingStatusId, setEditingStatusId] = useState(null);
+  const [memberStats, setMemberStats] = useState(null);
+  const [rule, setRule] = useState(null);
 
   // Fetch members
   const fetchMembers = async () => {
@@ -108,11 +112,18 @@ const Members = () => {
     setShowModal(true);
     setError('');
   };
-  const openDetailModal = (member) => {
+  const openDetailModal = async (member) => {
     setSelectedMember(member);
     setModalType('detail');
     setShowModal(true);
     setError('');
+    setMemberStats(null);
+    try {
+      const stats = await getMemberStats(member._id);
+      setMemberStats(stats);
+    } catch (e) {
+      setMemberStats(null);
+    }
   };
   const closeModal = () => {
     setShowModal(false);
@@ -122,7 +133,44 @@ const Members = () => {
 
   // Handle form change
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let newForm = { ...form, [name]: value };
+    // Nếu chọn ngày cấp thẻ thì tự động set ngày hết hạn = ngày cấp + 6 tháng
+    if (name === 'cardIssueDate' && value) {
+      const issueDate = new Date(value);
+      const expiryDate = new Date(issueDate);
+      expiryDate.setMonth(expiryDate.getMonth() + 6);
+      // Format yyyy-mm-dd
+      const expiryStr = expiryDate.toISOString().substring(0, 10);
+      newForm.cardExpiryDate = expiryStr;
+    }
+    setForm(newForm);
+  };
+
+  // Lấy rule hệ thống khi mở modal thêm/sửa
+  const fetchRule = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/rules');
+      let data = Array.isArray(res.data) ? res.data[0] : res.data;
+      if (!data) return;
+      if (data.type === 'array' && Array.isArray(data.value)) setRule(data.value[0]);
+      else if (data.value) setRule(data.value);
+      else setRule(data);
+    } catch {}
+  };
+  useEffect(() => {
+    if (showModal && (modalType === 'create' || modalType === 'edit')) fetchRule();
+  }, [showModal, modalType]);
+
+  // Hàm tính tuổi
+  const calcAge = (dob) => {
+    if (!dob) return 0;
+    const birth = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
   };
 
   // Create member
@@ -130,6 +178,15 @@ const Members = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    // Kiểm tra tuổi
+    if (rule) {
+      const age = calcAge(form.dateOfBirth);
+      if (age < rule.minAge || age > rule.maxAge) {
+        setError(`Độ tuổi độc giả phải từ ${rule.minAge} đến ${rule.maxAge}`);
+        setLoading(false);
+        return;
+      }
+    }
     try {
       const data = {
         ...form,
@@ -152,6 +209,15 @@ const Members = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    // Kiểm tra tuổi
+    if (rule) {
+      const age = calcAge(form.dateOfBirth);
+      if (age < rule.minAge || age > rule.maxAge) {
+        setError(`Độ tuổi độc giả phải từ ${rule.minAge} đến ${rule.maxAge}`);
+        setLoading(false);
+        return;
+      }
+    }
     try {
       const data = {
         ...form,
@@ -184,6 +250,20 @@ const Members = () => {
     setLoading(false);
   };
 
+  const handleStatusChange = async (member, newStatus) => {
+    setLoading(true);
+    setError('');
+    try {
+      await updateMember(member._id, { ...member, status: newStatus });
+      setSuccess('Cập nhật trạng thái thành công');
+      fetchMembers();
+    } catch (e) {
+      setError(e.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
+    }
+    setEditingStatusId(null);
+    setLoading(false);
+  };
+
   // Table columns
   const columns = [
     { key: 'fullName', label: 'Họ tên' },
@@ -194,7 +274,30 @@ const Members = () => {
     { key: 'phone', label: 'SĐT' },
     { key: 'cardIssueDate', label: 'Ngày cấp', render: (item) => item.cardIssueDate ? new Date(item.cardIssueDate).toLocaleDateString() : '' },
     { key: 'cardExpiryDate', label: 'Ngày hết hạn', render: (item) => item.cardExpiryDate ? new Date(item.cardExpiryDate).toLocaleDateString() : '' },
-    { key: 'status', label: 'Trạng thái', render: (item) => <Badge variant={item.status === 'active' ? 'success' : item.status === 'suspended' ? 'warning' : 'error'}>{statusOptions.find(opt => opt.value === item.status)?.label || item.status}</Badge> },
+    {
+      key: 'status',
+      label: 'Trạng thái',
+      render: (item) =>
+        editingStatusId === item._id ? (
+          <select
+            value={item.status}
+            onChange={e => handleStatusChange(item, e.target.value)}
+            onBlur={() => setEditingStatusId(null)}
+            className="border rounded px-2 py-1"
+            autoFocus
+          >
+            {statusOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : (
+          <span onClick={() => setEditingStatusId(item._id)} style={{ cursor: 'pointer' }}>
+            <Badge variant={item.status === 'active' ? 'success' : item.status === 'suspended' ? 'warning' : 'error'}>
+              {statusOptions.find(opt => opt.value === item.status)?.label || item.status}
+            </Badge>
+          </span>
+        )
+    },
   ];
 
   return (
@@ -215,7 +318,11 @@ const Members = () => {
             columns={columns}
             data={pagedMembers}
             onEdit={openEditModal}
-            onDelete={(item) => { setDeleteId(item._id); setShowConfirm(true); }}
+            onDelete={(item) => {
+              if (item.status !== 'active') {
+                setDeleteId(item._id); setShowConfirm(true);
+              }
+            }}
             onRowClick={openDetailModal}
           />
           <div className="flex justify-center mt-4">
@@ -236,10 +343,13 @@ const Members = () => {
             <div><b>Ngày cấp thẻ:</b> {selectedMember.cardIssueDate ? new Date(selectedMember.cardIssueDate).toLocaleDateString() : ''}</div>
             <div><b>Ngày hết hạn:</b> {selectedMember.cardExpiryDate ? new Date(selectedMember.cardExpiryDate).toLocaleDateString() : ''}</div>
             <div><b>Trạng thái:</b> <Badge variant={selectedMember.status === 'active' ? 'success' : selectedMember.status === 'suspended' ? 'warning' : 'error'}>{statusOptions.find(opt => opt.value === selectedMember.status)?.label || selectedMember.status}</Badge></div>
+            <div><b>Số lượng sách còn lại:</b> {memberStats ? memberStats.remainingBooks ?? 'Không rõ' : 'Đang tải...'}</div>
             <div><b>Ghi chú:</b> {selectedMember.note}</div>
           </div>
         ) : (
           <form onSubmit={modalType === 'create' ? handleCreate : handleUpdate} className="space-y-4">
+            {/* Hiển thị lỗi trong modal bằng Alert popup */}
+            {error && <Alert type="error" message={error} onClose={() => setError('')} />}
             <div>
               <label className="block text-sm font-medium">Họ tên</label>
               <input name="fullName" value={form.fullName} onChange={handleChange} required className="w-full border rounded px-2 py-1" />
@@ -271,10 +381,13 @@ const Members = () => {
               <label className="block text-sm font-medium">Ngày cấp thẻ</label>
               <input name="cardIssueDate" value={form.cardIssueDate} onChange={handleChange} type="date" className="w-full border rounded px-2 py-1" />
             </div>
-            <div>
-              <label className="block text-sm font-medium">Ngày hết hạn thẻ</label>
-              <input name="cardExpiryDate" value={form.cardExpiryDate} onChange={handleChange} required type="date" className="w-full border rounded px-2 py-1" />
-            </div>
+            {/* Ẩn trường nhập ngày hết hạn khi thêm mới */}
+            {modalType !== 'create' && (
+              <div>
+                <label className="block text-sm font-medium">Ngày hết hạn thẻ</label>
+                <input name="cardExpiryDate" value={form.cardExpiryDate} onChange={handleChange} required type="date" className="w-full border rounded px-2 py-1" />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium">Ghi chú</label>
               <textarea name="note" value={form.note} onChange={handleChange} className="w-full border rounded px-2 py-1 min-h-[60px]" />

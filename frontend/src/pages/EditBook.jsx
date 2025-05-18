@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 
-const API_URL = 'http://localhost:5555/books';
+const API_URL = 'http://localhost:5000/api/books';
 
 const EditBook = () => {
   const { id } = useParams();
@@ -25,7 +25,7 @@ const EditBook = () => {
     setLoading(true);
     axios.get(`${API_URL}/${id}`).then(res => {
       setForm({
-        code: res.data.code || '',
+        code: res.data.code || res.data.bookCode || '',
         title: res.data.title || '',
         authors: Array.isArray(res.data.authors) ? res.data.authors.join(', ') : '',
         category: res.data.category || '',
@@ -85,7 +85,7 @@ const EditBook = () => {
       <form onSubmit={handleSubmit} className='border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto flex flex-col gap-4'>
         <div className='my-2'>
           <label className='text-xl mr-4 text-gray-500'>Mã sách</label>
-          <input name='code' value={form.code} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full' />
+          <input name='code' value={form.code} readOnly className='border-2 border-gray-500 px-4 py-2 w-full opacity-60 bg-gray-100 cursor-not-allowed' />
         </div>
         <div className='my-2'>
           <label className='text-xl mr-4 text-gray-500'>Tên sách</label>
