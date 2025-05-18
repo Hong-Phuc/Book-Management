@@ -1,12 +1,74 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const borrowSchema = mongoose.Schema({
-  memberId: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', required: true },
-  bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true },
-  borrowDate: { type: Date, default: Date.now },
-  dueDate: { type: Date, required: true },
-  returnDate: { type: Date },
-  status: { type: String, enum: ['borrowed', 'returned'], default: 'borrowed' }
-}, { timestamps: true });
+const borrowSchema = new mongoose.Schema({
+    member: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Member',
+        required: true
+    },
+    book: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Book',
+        required: true
+    },
+    borrowDate: {
+        type: Date,
+        required: true,
+        default: Date.now
+    },
+    dueDate: {
+        type: Date,
+        required: true
+    },
+    returnDate: {
+        type: Date
+    },
+    status: {
+        type: String,
+        enum: ['borrowed', 'returned', 'overdue'],
+        default: 'borrowed'
+    },
+    fine: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    note: {
+        type: String,
+        trim: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    }
+}, {
+    timestamps: true
+});
 
-export const Borrow = mongoose.model('Borrow', borrowSchema); 
+// Middleware kiểm tra ngày trả
+borrowSchema.pre('save', function(next) {
+    if (this.dueDate <= this.borrowDate) {
+        next(new Error('Due date must be after borrow date'));
+    }
+    if (this.returnDate && this.returnDate < this.borrowDate) {
+        next(new Error('Return date cannot be before borrow date'));
+    }
+    next();
+});
+
+// Middleware cập nhật trạng thái
+borrowSchema.pre('save', function(next) {
+    const now = new Date();
+    if (this.status === 'borrowed' && now > this.dueDate) {
+        this.status = 'overdue';
+    }
+    next();
+});
+
+const Borrow = mongoose.model('Borrow', borrowSchema);
+
+module.exports = Borrow; 

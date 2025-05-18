@@ -4,25 +4,53 @@ import { BookCopy } from '../models/bookCopyModel.js';
 
 const router = express.Router();
 
+// Function to process and save tags
+const processAndSaveTags = async (tags) => {
+  if (!tags || tags.length === 0) {
+    return [];
+  }
+  const savedTags = [];
+  for (const tagName of tags) {
+    // Find or create the tag
+    const tag = await Tag.findOneAndUpdate(
+      { name: tagName },
+      { name: tagName },
+      { upsert: true, new: true }
+    );
+    savedTags.push(tag.name);
+  }
+  return savedTags;
+};
+
 // Route for Save a new Book
 router.post('/', async (request, response) => {
   try {
-    if (
-      !request.body.title ||
-      !request.body.author ||
-      !request.body.publishYear ||
-      !request.body.quantity
-    ) {
+    const {
+      code,
+      title,
+      authors,
+      category,
+      publisher,
+      publishYear,
+      price,
+      quantity,
+      description
+    } = request.body;
+    if (!code || !title || !authors || !Array.isArray(authors) || authors.length === 0 || !category || !publisher || !publishYear || !price || !quantity) {
       return response.status(400).send({
-        message: 'Send all required fields: title, author, publishYear, quantity',
+        message: 'Send all required fields: code, title, authors (array), category, publisher, publishYear, price, quantity',
       });
     }
     const newBook = {
-      title: request.body.title,
-      author: request.body.author,
-      publishYear: request.body.publishYear,
+      code,
+      title,
+      authors,
+      category,
+      publisher,
+      publishYear,
+      price,
+      description: description || '',
     };
-    const quantity = parseInt(request.body.quantity);
     const book = await Book.create(newBook);
     // Tạo các bản copy
     const copies = [];
@@ -85,7 +113,20 @@ router.put('/:id', async (request, response) => {
 
     const { id } = request.params;
 
-    const result = await Book.findByIdAndUpdate(id, request.body);
+    const updatedBookData = {
+      title: request.body.title,
+      author: request.body.author,
+      publishYear: request.body.publishYear,
+      description: request.body.description || '',
+      tags: request.body.tags || [],
+    };
+
+    // Process and save tags first
+    if (updatedBookData.tags && updatedBookData.tags.length > 0) {
+      updatedBookData.tags = await processAndSaveTags(updatedBookData.tags);
+    }
+
+    const result = await Book.findByIdAndUpdate(id, updatedBookData, { new: true });
 
     if (!result) {
       return response.status(404).json({ message: 'Book not found' });
@@ -155,6 +196,18 @@ router.delete('/copies/:copyId', async (req, res) => {
     res.json({ message: 'Copy deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Add a new route to get all tags
+router.get('/tags', async (request, response) => {
+  try {
+    const tags = await Tag.find({});
+    const tagNames = tags.map(tag => tag.name);
+    return response.status(200).json(tagNames);
+  } catch (error) {
+    console.log(error.message);
+    response.status(500).send({ message: error.message });
   }
 });
 

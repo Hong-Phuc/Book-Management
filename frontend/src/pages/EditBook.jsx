@@ -7,7 +7,16 @@ const API_URL = 'http://localhost:5555/books';
 
 const EditBook = () => {
   const { id } = useParams();
-  const [form, setForm] = useState({ title: '', author: '', publishYear: '' });
+  const [form, setForm] = useState({
+    code: '',
+    title: '',
+    authors: '',
+    category: '',
+    publisher: '',
+    price: '',
+    publishYear: '',
+    description: ''
+  });
   const [copiesInfo, setCopiesInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,9 +25,14 @@ const EditBook = () => {
     setLoading(true);
     axios.get(`${API_URL}/${id}`).then(res => {
       setForm({
-        title: res.data.title,
-        author: res.data.author,
-        publishYear: res.data.publishYear,
+        code: res.data.code || '',
+        title: res.data.title || '',
+        authors: Array.isArray(res.data.authors) ? res.data.authors.join(', ') : '',
+        category: res.data.category || '',
+        publisher: res.data.publisher || '',
+        price: res.data.price || '',
+        publishYear: res.data.publishYear || '',
+        description: res.data.description || '',
       });
       setLoading(false);
     });
@@ -32,7 +46,17 @@ const EditBook = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await axios.put(`${API_URL}/${id}`, form);
+    const data = {
+      code: form.code,
+      title: form.title,
+      authors: form.authors.split(',').map(a => a.trim()).filter(Boolean),
+      category: form.category,
+      publisher: form.publisher,
+      price: parseFloat(form.price),
+      publishYear: parseInt(form.publishYear),
+      description: form.description,
+    };
+    await axios.put(`${API_URL}/${id}`, data);
     setLoading(false);
     navigate('/');
   };
@@ -49,42 +73,61 @@ const EditBook = () => {
     setCopiesInfo(res.data);
   };
 
+  // Generate years for dropdown
+  const currentYear = new Date().getFullYear();
+  const years = Array.from(new Array(currentYear - 1899), (val, index) => currentYear - index);
+  const yearOptions = years.map(year => ({ value: year, label: year.toString() }));
+
   return (
     <div className='p-4'>
       <BackButton />
       <h1 className='text-3xl my-4'>Edit Book</h1>
-      <form onSubmit={handleSubmit} className='border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto'>
-        <div className='my-4'>
-          <label className='text-xl mr-4 text-gray-500'>Title</label>
-          <input
-            type='text'
-            name='title'
-            value={form.title}
-            onChange={handleChange}
-            className='border-2 border-gray-500 px-4 py-2 w-full'
-          />
+      <form onSubmit={handleSubmit} className='border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto flex flex-col gap-4'>
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Mã sách</label>
+          <input name='code' value={form.code} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full' />
         </div>
-        <div className='my-4'>
-          <label className='text-xl mr-4 text-gray-500'>Author</label>
-          <input
-            type='text'
-            name='author'
-            value={form.author}
-            onChange={handleChange}
-            className='border-2 border-gray-500 px-4 py-2 w-full'
-          />
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Tên sách</label>
+          <input name='title' value={form.title} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full' />
         </div>
-        <div className='my-4'>
-          <label className='text-xl mr-4 text-gray-500'>Publish Year</label>
-          <input
-            type='number'
-            name='publishYear'
-            value={form.publishYear}
-            onChange={handleChange}
-            className='border-2 border-gray-500 px-4 py-2 w-full'
-          />
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Tác giả (cách nhau dấu phẩy)</label>
+          <input name='authors' value={form.authors} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full' placeholder='Nguyễn Văn A, Trần B' />
         </div>
-        <button type='submit' className='p-2 bg-sky-300 m-8 w-full'>Save</button>
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Thể loại</label>
+          <select name='category' value={form.category} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full'>
+            <option value=''>Chọn thể loại...</option>
+            <option value='A'>A</option>
+            <option value='B'>B</option>
+            <option value='C'>C</option>
+          </select>
+        </div>
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Nhà xuất bản</label>
+          <input name='publisher' value={form.publisher} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full' />
+        </div>
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Năm xuất bản</label>
+          <select name='publishYear' value={form.publishYear} onChange={handleChange} required className='border-2 border-gray-500 px-4 py-2 w-full'>
+            <option value=''>Chọn năm...</option>
+            {yearOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Trị giá (VNĐ)</label>
+          <input name='price' value={form.price} onChange={handleChange} required type='number' min='0' className='border-2 border-gray-500 px-4 py-2 w-full' />
+        </div>
+        <div className='my-2'>
+          <label className='text-xl mr-4 text-gray-500'>Mô tả</label>
+          <textarea name='description' value={form.description} onChange={handleChange} className='border-2 border-gray-500 px-4 py-2 w-full min-h-[80px]' />
+        </div>
+        <div className='flex justify-center'>
+          <button type='submit' className='p-2 bg-sky-300 hover:bg-sky-400 text-black font-semibold rounded w-40'>Lưu</button>
+        </div>
       </form>
       {copiesInfo && (
         <div className='border-2 border-sky-400 rounded-xl w-[600px] p-4 mx-auto mt-8'>
@@ -96,23 +139,29 @@ const EditBook = () => {
             <button onClick={handleAddCopy} className='ml-8 px-2 py-1 bg-green-300 rounded'>+ Add Copy</button>
           </div>
           <div className='mt-4'>
-            <table className='w-full border border-slate-400'>
+            <table className='w-full border border-slate-400 rounded-lg overflow-hidden'>
               <thead>
-                <tr>
-                  <th>Copy #</th>
-                  <th>Barcode</th>
-                  <th>Status</th>
-                  <th>Delete</th>
+                <tr className='bg-sky-100'>
+                  <th className='border border-slate-300 px-3 py-2 text-center'>Copy #</th>
+                  <th className='border border-slate-300 px-3 py-2 text-center'>Barcode</th>
+                  <th className='border border-slate-300 px-3 py-2 text-center'>Status</th>
+                  <th className='border border-slate-300 px-3 py-2 text-center'>Delete</th>
                 </tr>
               </thead>
               <tbody>
                 {copiesInfo.copies.map(c => (
-                  <tr key={c._id}>
-                    <td>{c.copyNumber}</td>
-                    <td>{c.barcode}</td>
-                    <td>{c.status}</td>
-                    <td>
-                      <button onClick={() => handleDeleteCopy(c._id)} disabled={c.status === 'borrowed'} style={{ color: c.status === 'borrowed' ? '#aaa' : 'red' }}>Delete</button>
+                  <tr key={c._id} className='hover:bg-sky-50 transition'>
+                    <td className='border border-slate-200 px-3 py-2 text-center'>{c.copyNumber}</td>
+                    <td className='border border-slate-200 px-3 py-2 text-center'>{c.barcode}</td>
+                    <td className='border border-slate-200 px-3 py-2 text-center'>{c.status}</td>
+                    <td className='border border-slate-200 px-3 py-2 text-center'>
+                      <button
+                        onClick={() => handleDeleteCopy(c._id)}
+                        disabled={c.status === 'borrowed'}
+                        className={`font-semibold ${c.status === 'borrowed' ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:underline'}`}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}

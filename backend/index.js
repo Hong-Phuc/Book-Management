@@ -1,45 +1,43 @@
-import express from 'express';
-import { PORT, mongoDBURL } from './config.js';
-import mongoose from 'mongoose';
-import booksRoute from './routes/booksRoute.js';
-import membersRoute from './routes/membersRoute.js';
-import borrowsRoute from './routes/borrowsRoute.js';
-import cors from 'cors';
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const config = require('./config');
+
+// Import routes
+const bookRoutes = require('./routes/bookRoutes');
+const memberRoutes = require('./routes/memberRoutes');
+const borrowRoutes = require('./routes/borrowRoutes');
+const fineReceiptRoutes = require('./routes/fineReceiptRoutes');
+const ruleRoutes = require('./routes/ruleRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
-// Middleware for parsing request body
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-// Middleware for handling CORS POLICY
-// Option 1: Allow All Origins with Default of cors(*)
-app.use(cors());
-// Option 2: Allow Custom Origins
-// app.use(
-//   cors({
-//     origin: 'http://localhost:3000',
-//     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//     allowedHeaders: ['Content-Type'],
-//   })
-// );
+// Connect to MongoDB
+mongoose.connect(config.mongoURI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('Could not connect to MongoDB:', err));
 
-app.get('/', (request, response) => {
-  console.log(request);
-  return response.status(234).send('Welcome To MERN Stack Tutorial');
+// Routes
+app.use('/api/books', bookRoutes);
+app.use('/api/members', memberRoutes);
+app.use('/api/borrows', borrowRoutes);
+app.use('/api/fine-receipts', fineReceiptRoutes);
+app.use('/api/rules', ruleRoutes);
+app.use('/api/reports', reportRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!' });
 });
 
-app.use('/books', booksRoute);
-app.use('/members', membersRoute);
-app.use('/borrows', borrowsRoute);
-
-mongoose
-  .connect(mongoDBURL)
-  .then(() => {
-    console.log('App connected to database');
-    app.listen(PORT, () => {
-      console.log(`App is listening to port: ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.log(error);
-  });
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

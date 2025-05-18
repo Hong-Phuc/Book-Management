@@ -1,47 +1,65 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import Table from '../components/Table';
+import Search from '../components/Search';
+import Pagination from '../components/Pagination';
+import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Alert from '../components/Alert';
+import Badge from '../components/Badge';
+import Button from '../components/Button';
+import Loading from '../components/Loading';
+import EmptyState from '../components/EmptyState';
+import Card from '../components/Card';
+import { getAllMembers, createMember, updateMember, deleteMember, searchMembers } from '../services/memberService';
 
-const API_URL = 'http://localhost:5555/members';
+const initialForm = {
+  fullName: '',
+  memberType: '',
+  dateOfBirth: '',
+  address: '',
+  email: '',
+  phone: '',
+  cardIssueDate: '',
+  cardExpiryDate: '',
+  note: ''
+};
 
-const inputStyle = {
-  padding: '8px',
-  marginRight: '8px',
-  border: '1px solid #b3b3b3',
-  borderRadius: '4px',
-  minWidth: '120px',
-};
-const buttonStyle = {
-  padding: '8px 16px',
-  marginRight: '8px',
-  border: 'none',
-  borderRadius: '4px',
-  background: '#4fc3f7',
-  color: '#222',
-  cursor: 'pointer',
-};
-const tableStyle = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  background: '#f8fbff',
-};
-const thtdStyle = {
-  border: '1px solid #b3b3b3',
-  padding: '8px',
-};
+const memberTypeOptions = [
+  { value: 'student', label: 'Sinh viên' },
+  { value: 'teacher', label: 'Giáo viên' },
+  { value: 'staff', label: 'Nhân viên' },
+  { value: 'other', label: 'Khác' }
+];
+
+const statusOptions = [
+  { value: 'active', label: 'Hoạt động' },
+  { value: 'inactive', label: 'Ngừng' },
+  { value: 'suspended', label: 'Tạm khóa' }
+];
 
 const Members = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '' });
-  const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState('create'); // 'create' | 'edit' | 'detail'
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [form, setForm] = useState(initialForm);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
 
+  // Fetch members
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(API_URL);
-      setMembers(res.data.data);
+      const data = await getAllMembers();
+      setMembers(data);
     } catch (e) {
-      setMembers([]);
+      setError('Không thể tải danh sách độc giả');
     }
     setLoading(false);
   };
@@ -50,79 +68,236 @@ const Members = () => {
     fetchMembers();
   }, []);
 
+  // Search members
+  const handleSearch = async (value) => {
+    setSearch(value);
+    if (!value) {
+      fetchMembers();
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await searchMembers(value);
+      setMembers(data);
+    } catch (e) {
+      setError('Lỗi tìm kiếm độc giả');
+    }
+    setLoading(false);
+  };
+
+  // Pagination
+  const pagedMembers = members.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(members.length / pageSize);
+
+  // Modal open/close
+  const openCreateModal = () => {
+    setForm(initialForm);
+    setModalType('create');
+    setShowModal(true);
+    setError('');
+  };
+  const openEditModal = (member) => {
+    setForm({
+      ...member,
+      dateOfBirth: member.dateOfBirth ? member.dateOfBirth.substring(0, 10) : '',
+      cardIssueDate: member.cardIssueDate ? member.cardIssueDate.substring(0, 10) : '',
+      cardExpiryDate: member.cardExpiryDate ? member.cardExpiryDate.substring(0, 10) : ''
+    });
+    setSelectedMember(member);
+    setModalType('edit');
+    setShowModal(true);
+    setError('');
+  };
+  const openDetailModal = (member) => {
+    setSelectedMember(member);
+    setModalType('detail');
+    setShowModal(true);
+    setError('');
+  };
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedMember(null);
+    setError('');
+  };
+
+  // Handle form change
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  // Create member
+  const handleCreate = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     try {
-      if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, form);
-      } else {
-        await axios.post(API_URL, form);
-      }
-      setForm({ name: '', email: '', phone: '', address: '' });
-      setEditingId(null);
-      await fetchMembers();
-    } catch (e) {}
+      const data = {
+        ...form,
+        dateOfBirth: form.dateOfBirth,
+        cardIssueDate: form.cardIssueDate || new Date().toISOString().substring(0, 10),
+        cardExpiryDate: form.cardExpiryDate
+      };
+      await createMember(data);
+      setSuccess('Thêm độc giả thành công');
+      setShowModal(false);
+      fetchMembers();
+    } catch (e) {
+      setError(e.response?.data?.message || 'Lỗi khi thêm độc giả');
+    }
     setLoading(false);
   };
 
-  const handleEdit = (member) => {
-    setForm({ name: member.name, email: member.email, phone: member.phone, address: member.address });
-    setEditingId(member._id);
-  };
-
-  const handleDelete = async (id) => {
+  // Update member
+  const handleUpdate = async (e) => {
+    e.preventDefault();
     setLoading(true);
-    await axios.delete(`${API_URL}/${id}`);
-    await fetchMembers();
+    setError('');
+    try {
+      const data = {
+        ...form,
+        dateOfBirth: form.dateOfBirth,
+        cardIssueDate: form.cardIssueDate,
+        cardExpiryDate: form.cardExpiryDate
+      };
+      await updateMember(selectedMember._id, data);
+      setSuccess('Cập nhật độc giả thành công');
+      setShowModal(false);
+      fetchMembers();
+    } catch (e) {
+      setError(e.response?.data?.message || 'Lỗi khi cập nhật độc giả');
+    }
     setLoading(false);
   };
+
+  // Delete member
+  const handleDelete = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await deleteMember(deleteId);
+      setSuccess('Xóa độc giả thành công');
+      setShowConfirm(false);
+      fetchMembers();
+    } catch (e) {
+      setError(e.response?.data?.message || 'Lỗi khi xóa độc giả');
+    }
+    setLoading(false);
+  };
+
+  // Table columns
+  const columns = [
+    { key: 'fullName', label: 'Họ tên' },
+    { key: 'memberType', label: 'Loại', render: (item) => memberTypeOptions.find(opt => opt.value === item.memberType)?.label || item.memberType },
+    { key: 'dateOfBirth', label: 'Ngày sinh', render: (item) => item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : '' },
+    { key: 'address', label: 'Địa chỉ' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'SĐT' },
+    { key: 'cardIssueDate', label: 'Ngày cấp', render: (item) => item.cardIssueDate ? new Date(item.cardIssueDate).toLocaleDateString() : '' },
+    { key: 'cardExpiryDate', label: 'Ngày hết hạn', render: (item) => item.cardExpiryDate ? new Date(item.cardExpiryDate).toLocaleDateString() : '' },
+    { key: 'status', label: 'Trạng thái', render: (item) => <Badge variant={item.status === 'active' ? 'success' : item.status === 'suspended' ? 'warning' : 'error'}>{statusOptions.find(opt => opt.value === item.status)?.label || item.status}</Badge> },
+  ];
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
-      <h2>Members List</h2>
-      <form onSubmit={handleSubmit} style={{ marginBottom: 24, background: '#e3f4fd', padding: 16, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required style={inputStyle} />
-        <input name="email" placeholder="Email" value={form.email} onChange={handleChange} style={inputStyle} />
-        <input name="phone" placeholder="Phone" value={form.phone} onChange={handleChange} style={inputStyle} />
-        <input name="address" placeholder="Address" value={form.address} onChange={handleChange} style={inputStyle} />
-        <button type="submit" style={buttonStyle} disabled={loading}>{editingId ? 'Update' : 'Add'}</button>
-        {editingId && <button type="button" style={{...buttonStyle, background:'#bdbdbd'}} onClick={() => { setForm({ name: '', email: '', phone: '', address: '' }); setEditingId(null); }}>Cancel</button>}
-      </form>
-      {loading ? <div>Loading...</div> : (
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={thtdStyle}>No</th>
-              <th style={thtdStyle}>Name</th>
-              <th style={thtdStyle}>Email</th>
-              <th style={thtdStyle}>Phone</th>
-              <th style={thtdStyle}>Address</th>
-              <th style={thtdStyle}>Operations</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m, idx) => (
-              <tr key={m._id}>
-                <td style={thtdStyle}>{idx + 1}</td>
-                <td style={thtdStyle}>{m.name}</td>
-                <td style={thtdStyle}>{m.email}</td>
-                <td style={thtdStyle}>{m.phone}</td>
-                <td style={thtdStyle}>{m.address}</td>
-                <td style={thtdStyle}>
-                  <button style={buttonStyle} onClick={() => handleEdit(m)} disabled={loading}>Edit</button>
-                  <button style={{...buttonStyle, background:'#ff5252', color:'#fff'}} onClick={() => handleDelete(m._id)} disabled={loading}>Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Card title="Quản lý Độc giả">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+        <Search value={search} onChange={handleSearch} placeholder="Tìm kiếm độc giả..." />
+        <Button variant="primary" onClick={openCreateModal}>+ Thêm độc giả</Button>
+      </div>
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {loading ? (
+        <Loading />
+      ) : members.length === 0 ? (
+        <EmptyState title="Không có độc giả" description="Chưa có dữ liệu độc giả trong hệ thống." action={<Button onClick={openCreateModal}>Thêm độc giả mới</Button>} />
+      ) : (
+        <>
+          <Table
+            columns={columns}
+            data={pagedMembers}
+            onEdit={openEditModal}
+            onDelete={(item) => { setDeleteId(item._id); setShowConfirm(true); }}
+            onRowClick={openDetailModal}
+          />
+          <div className="flex justify-center mt-4">
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          </div>
+        </>
       )}
-    </div>
+      {/* Modal Thêm/Sửa/Xem chi tiết */}
+      <Modal isOpen={showModal} onClose={closeModal} title={modalType === 'create' ? 'Thêm độc giả' : modalType === 'edit' ? 'Cập nhật độc giả' : 'Chi tiết độc giả'}>
+        {modalType === 'detail' && selectedMember ? (
+          <div className="space-y-2">
+            <div><b>Họ tên:</b> {selectedMember.fullName}</div>
+            <div><b>Loại:</b> {memberTypeOptions.find(opt => opt.value === selectedMember.memberType)?.label || selectedMember.memberType}</div>
+            <div><b>Ngày sinh:</b> {selectedMember.dateOfBirth ? new Date(selectedMember.dateOfBirth).toLocaleDateString() : ''}</div>
+            <div><b>Địa chỉ:</b> {selectedMember.address}</div>
+            <div><b>Email:</b> {selectedMember.email}</div>
+            <div><b>SĐT:</b> {selectedMember.phone}</div>
+            <div><b>Ngày cấp thẻ:</b> {selectedMember.cardIssueDate ? new Date(selectedMember.cardIssueDate).toLocaleDateString() : ''}</div>
+            <div><b>Ngày hết hạn:</b> {selectedMember.cardExpiryDate ? new Date(selectedMember.cardExpiryDate).toLocaleDateString() : ''}</div>
+            <div><b>Trạng thái:</b> <Badge variant={selectedMember.status === 'active' ? 'success' : selectedMember.status === 'suspended' ? 'warning' : 'error'}>{statusOptions.find(opt => opt.value === selectedMember.status)?.label || selectedMember.status}</Badge></div>
+            <div><b>Ghi chú:</b> {selectedMember.note}</div>
+          </div>
+        ) : (
+          <form onSubmit={modalType === 'create' ? handleCreate : handleUpdate} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Họ tên</label>
+              <input name="fullName" value={form.fullName} onChange={handleChange} required className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Loại độc giả</label>
+              <select name="memberType" value={form.memberType} onChange={handleChange} required className="w-full border rounded px-2 py-1">
+                <option value="">Chọn loại...</option>
+                {memberTypeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Ngày sinh</label>
+              <input name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} required type="date" className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Địa chỉ</label>
+              <input name="address" value={form.address} onChange={handleChange} required className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Email</label>
+              <input name="email" value={form.email} onChange={handleChange} required type="email" className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Số điện thoại</label>
+              <input name="phone" value={form.phone} onChange={handleChange} required type="text" pattern="[0-9]{10}" className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Ngày cấp thẻ</label>
+              <input name="cardIssueDate" value={form.cardIssueDate} onChange={handleChange} type="date" className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Ngày hết hạn thẻ</label>
+              <input name="cardExpiryDate" value={form.cardExpiryDate} onChange={handleChange} required type="date" className="w-full border rounded px-2 py-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Ghi chú</label>
+              <textarea name="note" value={form.note} onChange={handleChange} className="w-full border rounded px-2 py-1 min-h-[60px]" />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="submit" variant="primary">{modalType === 'create' ? 'Thêm' : 'Cập nhật'}</Button>
+              <Button type="button" variant="secondary" onClick={closeModal}>Hủy</Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+      {/* Confirm xóa */}
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleDelete}
+        title="Xác nhận xóa độc giả"
+        message="Bạn có chắc chắn muốn xóa độc giả này?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        variant="danger"
+      />
+    </Card>
   );
 };
 
