@@ -1,54 +1,48 @@
-# Book Store MERN Stack Application
+# Library Management - MERN Stack Application
 
-A full-stack book store application built with the MERN stack (MongoDB, Express.js, React.js, Node.js).
+A full-featured library management application built using the MERN Stack (MongoDB, Express.js, React.js, Node.js).
 
-## Features
+## Key Features
 
-- Book management system
-- Modern and responsive UI using React and Tailwind CSS
+- Book management (add, edit, delete, search)
+- User management with role-based access control
+- Modern, responsive user interface using React and Tailwind CSS
 - RESTful API backend
 - MongoDB database integration
-- Real-time notifications using notistack
+- Real-time notifications with Notistack
 
-## Tech Stack
+## Technologies Used
 
 ### Frontend
-- React.js
-- Vite
-- React Router DOM
-- Axios
-- Tailwind CSS
-- React Icons
-- Notistack
+- React.js – JavaScript framework for building user interfaces
+- Vite – Fast build tool and development server
+- React Router DOM – Client-side routing
+- Axios – HTTP client for API calls
+- Tailwind CSS – Utility-first CSS framework
+- React Icons – Icon library for React
+- Notistack – Notification system for React
 
 ### Backend
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- CORS
+- Node.js - JavaScript runtime environment
+- Express.js – Web application framework
+- MongoDB – NoSQL database
+- Mongoose – MongoDB object modeling tool
+- CORS – Security middleware for cross-origin requests
 
-## Prerequisites
-
-- Node.js (v14 or higher)
+## System Requirements
+- Node.js ((version 14 or higher)
 - MongoDB
-- npm or yarn
+- npm or yarn package manager
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd Book-Store-MERN-Stack
-```
-
-2. Install backend dependencies:
+1. Install backend dependencies:
 ```bash
 cd backend
 npm install
 ```
 
-3. Install frontend dependencies:
+2. Install frontend dependencies:
 ```bash
 cd ../frontend
 npm install
@@ -56,13 +50,13 @@ npm install
 
 ## Configuration
 
-1. Create a `.env` file in the backend directory with the following variables:
+1. Create a .env file in the backend folder with the following variables:
 ```
 MONGODB_URI=your_mongodb_connection_string
 PORT=5555
 ```
 
-2. Create a `.env` file in the frontend directory with the following variables:
+2. Create a .env file in the frontend folder with the following variable:
 ```
 VITE_API_URL=http://localhost:5555
 ```
@@ -81,45 +75,34 @@ cd frontend
 npm run dev
 ```
 
-The application will be available at:
+The application will run at:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:5555
-
-## Scripts
-
-### Backend
-- `npm run dev`: Start the development server with nodemon
-- `npm start`: Start the production server
-
-### Frontend
-- `npm run dev`: Start the development server
-- `npm run build`: Build for production
-- `npm run preview`: Preview the production build
-- `npm run lint`: Run ESLint
 
 ## Project Structure
 
 ```
-Book-Store-MERN-Stack/
-├── frontend/           # React frontend application
-│   ├── src/           # Source files
-│   ├── public/        # Static files
-│   └── package.json   # Frontend dependencies
-├── backend/           # Node.js backend application
-│   ├── models/        # MongoDB models
-│   ├── routes/        # API routes
-│   └── package.json   # Backend dependencies
+Book-Management/
+├── frontend/           # React frontend app
+│   ├── src/            # Source code
+│   ├── public/         # Static files
+│   └── package.json    # Frontend dependencies
+├── backend/            # Node.js backend app
+│   ├── models/         # MongoDB models
+│   ├── routes/         # API route definitions
+│   ├── controllers/    # Business logic and controllers
+│   └── package.json    # Backend dependencies
 └── README.md
 ```
 
-## Contributing
+## Scripts
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Backend
+- npm run dev: Start the development server using nodemon
+- npm start: Start the production server
 
-## License
-
-This project is licensed under the ISC License.
+### Frontend
+- npm run dev: Start the development server
+- npm run build: Build the app for production
+- npm run preview: Preview the production build
+- npm run lint: Run ESLint for code quality
