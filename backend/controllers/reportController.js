@@ -35,7 +35,7 @@ exports.getBorrowStats = async (req, res) => {
     const stats = {};
     let total = 0;
     borrows.forEach(b => {
-      const cat = b.book?.category || 'Khác';
+      const cat = b.book && b.book.category ? b.book.category : 'Khác';
       stats[cat] = (stats[cat] || 0) + 1;
       total++;
     });
@@ -47,6 +47,7 @@ exports.getBorrowStats = async (req, res) => {
     }));
     res.json(result);
   } catch (err) {
+    console.error('LỖI getBorrowStats:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -79,13 +80,14 @@ exports.getLateReturnStats = async (req, res) => {
       .map(b => {
         const lateDays = Math.ceil((b.returnDate - b.dueDate) / (1000 * 60 * 60 * 24));
         return {
-          bookTitle: b.book?.title || 'Không rõ',
+          bookTitle: b.book && b.book.title ? b.book.title : 'Không rõ',
           borrowDate: b.borrowDate,
           lateDays
         };
       });
     res.json(result);
   } catch (err) {
+    console.error('LỖI getLateReturnStats:', err);
     res.status(500).json({ error: err.message });
   }
 };

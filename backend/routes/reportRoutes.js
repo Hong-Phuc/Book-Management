@@ -2,6 +2,14 @@ const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
 
+// BM7.1
+router.post('/borrow-stats', reportController.createBorrowStats);
+router.get('/borrow-stats', reportController.getBorrowStats);
+
+// BM7.2
+router.post('/late-return-stats', reportController.createLateReturnStats);
+router.get('/late-return-stats', reportController.getLateReturnStats);
+
 // Get all reports
 router.get('/', reportController.getAllReports);
 
