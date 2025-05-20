@@ -269,8 +269,10 @@ const Borrows = () => {
               <th style={thtdStyle}>Số lượng</th>
               <th style={thtdStyle}>Độc Giả</th>
               <th style={thtdStyle}>Ngày Mượn</th>
+              <th style={thtdStyle}>Ngày trả dự kiến</th>
               <th style={thtdStyle}>Ngày Trả</th>
-              <th style={thtdStyle}>Tiền còn nợ</th>
+              <th style={thtdStyle}>Tiền phạt</th>
+              <th style={thtdStyle}>Tiền nợ</th>
               <th style={thtdStyle}>Trạng Thái</th>
               <th style={thtdStyle}>Thao Tác</th>
             </tr>
@@ -280,9 +282,14 @@ const Borrows = () => {
               const price = typeof br.price === 'number' ? br.price : (br.book?.price || 0);
               const quantity = typeof br.quantity === 'number' ? br.quantity : 1;
               const fine = (br.fine || 0);
-              const total = price * quantity + fine;
+              const total = price * quantity;
               const paid = (typeof br.paid === 'number' ? br.paid : (br.prepaid ?? 0));
-              const totalOwed = Math.max(0, total - paid);
+              const totalOwed = Math.max(0, total + fine - paid);
+              const isReturned = br.status === 'returned';
+              const isLate = isReturned && br.returnDate && br.dueDate && new Date(br.returnDate) > new Date(br.dueDate);
+              let statusText = '';
+              if (isReturned) statusText = isLate ? 'Trả muộn' : 'Đã trả';
+              else statusText = 'Đang mượn';
               return (
                 <tr key={br._id}>
                   <td style={thtdStyle}>{idx + 1}</td>
@@ -305,11 +312,13 @@ const Borrows = () => {
                     </div>
                   </td>
                   <td style={thtdStyle}>{br.borrowDate ? new Date(br.borrowDate).toLocaleDateString() : ''}</td>
+                  <td style={thtdStyle}>{br.dueDate ? new Date(br.dueDate).toLocaleDateString() : '-'}</td>
                   <td style={thtdStyle}>{br.returnDate ? new Date(br.returnDate).toLocaleDateString() : '-'}</td>
+                  <td style={thtdStyle}>{fine > 0 ? fine.toLocaleString() + ' VNĐ' : '-'}</td>
                   <td style={thtdStyle}>{totalOwed.toLocaleString()} VNĐ</td>
-                  <td style={thtdStyle}>{br.status === 'borrowed' ? 'Đang mượn' : 'Đã trả'}</td>
+                  <td style={thtdStyle}>{statusText}</td>
                   <td style={thtdStyle}>
-                    {br.status === 'borrowed' && totalOwed === 0 && (
+                    {!isReturned && totalOwed === 0 && (
                       <button style={buttonStyle} onClick={() => handleReturn(br._id)} disabled={loading}>Trả sách</button>
                     )}
                   </td>
@@ -363,7 +372,6 @@ const Borrows = () => {
                       <td style={{ padding: 8 }}>
                         <input type="number" min="0" value={paid} onChange={e => handleEditPaidChange(b._id, e.target.value)} style={{ width: 80, textAlign: 'right', padding: 4 }} />
                       </td>
-                      <td style={{ padding: 8 }}>{paid.toLocaleString()} VNĐ</td>
                       <td style={{ padding: 8, fontWeight: 'bold' }}>{totalOwed.toLocaleString()} VNĐ</td>
                       <td style={{ padding: 8 }}>{totalOwed <= 0 ? 'Đã hết nợ' : 'Còn nợ'}</td>
                       <td style={{ padding: 8 }}>
@@ -375,7 +383,7 @@ const Borrows = () => {
               </tbody>
               <tfoot style={{ background: '#e3f4fd', fontWeight: 'bold' }}>
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'right', padding: 8 }}>Tổng cộng:</td>
+                  <td colSpan={7} style={{ textAlign: 'right', padding: 8 }}>Tổng cộng:</td>
                   <td style={{ textAlign: 'center', padding: 8 }}>
                     {memberBorrows.reduce((sum, b) => {
                       const price = typeof b.price === 'number' ? b.price : (b.book?.price || 0);

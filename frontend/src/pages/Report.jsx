@@ -20,58 +20,94 @@ const Report = () => {
 
   useEffect(() => { fetchBorrowStats(); fetchLateStats(); }, []);
 
+  // Tính tổng số lượt mượn
+  const totalBorrowCount = borrowStats.reduce((sum, s) => sum + (s.borrowCount || 0), 0);
+  // Tính tổng số sách trả trễ
+  const totalLateCount = lateStats.length;
+
+  // Hàm format ngày
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('vi-VN');
+  };
+
   return (
     <div className='p-4'>
-      <h1 className='text-2xl mb-4'>Report</h1>
-      <div className='mb-8'>
-        <h2 className='text-xl mb-2'>BM7.1: Thống kê mượn theo thể loại</h2>
-        <input value={month} onChange={e => setMonth(e.target.value)} placeholder='Tháng (MM-YYYY)' className='border px-2 mr-2'/>
-        <button onClick={fetchBorrowStats} className='bg-gray-400 px-2 py-1 rounded'>Lọc</button>
-        <table className='w-full border mt-2'>
-          <thead>
-            <tr className='bg-gray-200'>
-              <th>Thể loại</th>
-              <th>Số lượt mượn</th>
-              <th>Tỉ lệ</th>
-              <th>Tháng</th>
-            </tr>
-          </thead>
-          <tbody>
-            {borrowStats.map((s, i) => (
-              <tr key={i} className='border-t'>
-                <td>{s.category}</td>
-                <td>{s.borrowCount}</td>
-                <td>{s.ratio}</td>
-                <td>{s.month}</td>
+      {/* BM7.1 */}
+      <div className='mb-12'>
+        <div className='border w-full max-w-3xl mx-auto'>
+          <div className='flex'>
+            <div className='bg-black text-white font-bold px-4 py-2 border-r'>BM7.1</div>
+            <div className='bg-black text-white font-bold flex-1 px-4 py-2'>Báo Cáo Thống Kê Tình Hình Mượn Sách Theo Thể Loại</div>
+          </div>
+          <div className='border-b px-4 py-2'>
+            Tháng: <input value={month} onChange={e => setMonth(e.target.value)} placeholder='MM-YYYY' className='border px-2 mx-2' />
+            <button onClick={fetchBorrowStats} className='bg-gray-400 px-2 py-1 rounded'>Lọc</button>
+          </div>
+          <table className='w-full border'>
+            <thead>
+              <tr className='bg-black text-white'>
+                <th className='border px-2 py-1'>STT</th>
+                <th className='border px-2 py-1'>Tên Thể Loại</th>
+                <th className='border px-2 py-1'>Số Lượt Mượn</th>
+                <th className='border px-2 py-1'>Tỉ Lệ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {borrowStats.map((s, i) => (
+                <tr key={i} className='border-t'>
+                  <td className='border px-2 py-1 text-center'>{i + 1}</td>
+                  <td className='border px-2 py-1'>{s.category}</td>
+                  <td className='border px-2 py-1 text-center'>{s.borrowCount}</td>
+                  <td className='border px-2 py-1 text-center'>{s.ratio}</td>
+                </tr>
+              ))}
+              {borrowStats.length === 0 && (
+                <tr><td colSpan={4} className='text-center py-2 text-gray-500'>Không có dữ liệu cho tháng này.</td></tr>
+              )}
+            </tbody>
+          </table>
+          <div className='px-4 py-2 text-right border-t'>Tổng số lượt mượn: <span className='font-semibold'>{totalBorrowCount}</span></div>
+        </div>
       </div>
-      <div>
-        <h2 className='text-xl mb-2'>BM7.2: Thống kê sách trả trễ</h2>
-        <input value={date} onChange={e => setDate(e.target.value)} placeholder='Ngày (YYYY-MM-DD)' className='border px-2 mr-2'/>
-        <button onClick={fetchLateStats} className='bg-gray-400 px-2 py-1 rounded'>Lọc</button>
-        <table className='w-full border mt-2'>
-          <thead>
-            <tr className='bg-gray-200'>
-              <th>Tên sách</th>
-              <th>Ngày mượn</th>
-              <th>Số ngày trả trễ</th>
-              <th>Ngày thống kê</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lateStats.map((s, i) => (
-              <tr key={i} className='border-t'>
-                <td>{s.bookTitle}</td>
-                <td>{new Date(s.borrowDate).toLocaleDateString()}</td>
-                <td>{s.lateDays}</td>
-                <td>{new Date(s.date).toLocaleDateString()}</td>
+      {/* BM7.2 */}
+      <div className='mb-12'>
+        <div className='border w-full max-w-3xl mx-auto'>
+          <div className='flex'>
+            <div className='bg-black text-white font-bold px-4 py-2 border-r'>BM7.2</div>
+            <div className='bg-black text-white font-bold flex-1 px-4 py-2'>Báo Cáo Thống Kê Sách Trả Trễ</div>
+          </div>
+          <div className='border-b px-4 py-2'>
+            Ngày: <input value={date} onChange={e => setDate(e.target.value)} placeholder='YYYY-MM-DD' className='border px-2 mx-2' />
+            <button onClick={fetchLateStats} className='bg-gray-400 px-2 py-1 rounded'>Lọc</button>
+          </div>
+          <table className='w-full border'>
+            <thead>
+              <tr className='bg-black text-white'>
+                <th className='border px-2 py-1'>STT</th>
+                <th className='border px-2 py-1'>Tên Sách</th>
+                <th className='border px-2 py-1'>Ngày Mượn</th>
+                <th className='border px-2 py-1'>Số Ngày Trả Trễ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {lateStats.map((s, i) => (
+                <tr key={i} className='border-t'>
+                  <td className='border px-2 py-1 text-center'>{i + 1}</td>
+                  <td className='border px-2 py-1'>{s.bookTitle}</td>
+                  <td className='border px-2 py-1 text-center'>{formatDate(s.borrowDate)}</td>
+                  <td className='border px-2 py-1 text-center text-red-600 font-bold'>{s.lateDays}</td>
+                </tr>
+              ))}
+              {lateStats.length === 0 && (
+                <tr><td colSpan={4} className='text-center py-2 text-gray-500'>Không có sách trả trễ cho ngày này.</td></tr>
+              )}
+            </tbody>
+          </table>
+          <div className='px-4 py-2 text-right border-t'>Tổng số sách trả trễ: <span className='font-semibold text-red-600'>{totalLateCount}</span></div>
+        </div>
       </div>
     </div>
   );

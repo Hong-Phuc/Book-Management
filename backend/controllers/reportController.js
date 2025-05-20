@@ -19,8 +19,33 @@ exports.createBorrowStats = async (req, res) => {
 exports.getBorrowStats = async (req, res) => {
   try {
     const { month } = req.query;
-    const stats = month ? await BorrowStats.find({ month }) : await BorrowStats.find();
-    res.json(stats);
+    let match = {};
+    if (month) {
+      // month: MM-YYYY
+      const [m, y] = month.split('-');
+      if (!m || !y) return res.json([]);
+      const start = new Date(`${y}-${m.padStart(2, '0')}-01T00:00:00.000Z`);
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + 1);
+      match.borrowDate = { $gte: start, $lt: end };
+    }
+    // Chỉ tính các lượt đã mượn (không cần returned)
+    const borrows = await Borrow.find(match).populate('book', 'category');
+    // Đếm số lượt mượn theo thể loại
+    const stats = {};
+    let total = 0;
+    borrows.forEach(b => {
+      const cat = b.book?.category || 'Khác';
+      stats[cat] = (stats[cat] || 0) + 1;
+      total++;
+    });
+    // Tính tỉ lệ
+    const result = Object.entries(stats).map(([category, borrowCount]) => ({
+      category,
+      borrowCount,
+      ratio: total ? ((borrowCount / total) * 100).toFixed(2) + '%' : '0%'
+    }));
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,8 +64,27 @@ exports.createLateReturnStats = async (req, res) => {
 exports.getLateReturnStats = async (req, res) => {
   try {
     const { date } = req.query;
-    const stats = date ? await LateReturnStats.find({ date }) : await LateReturnStats.find();
-    res.json(stats);
+    let match = {};
+    if (date) {
+      // date: YYYY-MM-DD
+      const start = new Date(date + 'T00:00:00.000Z');
+      const end = new Date(date + 'T23:59:59.999Z');
+      match.returnDate = { $gte: start, $lte: end };
+    }
+    // Chỉ lấy các bản ghi đã trả và trả trễ
+    match.status = 'returned';
+    const borrows = await Borrow.find(match).populate('book', 'title');
+    const result = borrows
+      .filter(b => b.returnDate && b.dueDate && b.returnDate > b.dueDate)
+      .map(b => {
+        const lateDays = Math.ceil((b.returnDate - b.dueDate) / (1000 * 60 * 60 * 24));
+        return {
+          bookTitle: b.book?.title || 'Không rõ',
+          borrowDate: b.borrowDate,
+          lateDays
+        };
+      });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
