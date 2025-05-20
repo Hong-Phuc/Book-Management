@@ -22,16 +22,16 @@ const BooksTable = ({ books }) => {
 
   return (
     <>
-      <table className='w-full border-separate border-spacing-2'>
+      <table className='w-full border-separate border-spacing-2' style={{ tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className='border border-slate-700 rounded-md text-center'>No</th>
-            <th className='border border-slate-700 rounded-md text-center'>Mã sách</th>
-            <th className='border border-slate-700 rounded-md text-center'>Title</th>
-            <th className='border border-slate-700 rounded-md text-center max-md:hidden'>Author</th>
-            <th className='border border-slate-700 rounded-md text-center max-md:hidden'>Publish Year</th>
-            <th className='border border-slate-700 rounded-md text-center'>Genre</th>
-            <th className='border border-slate-700 rounded-md text-center'>Operations</th>
+            <th className='border border-slate-700 rounded-md text-center' style={{ width: '50px' }}>No</th>
+            <th className='border border-slate-700 rounded-md text-center' style={{ width: '140px' }}>Mã sách</th>
+            <th className='border border-slate-700 rounded-md text-center' style={{ width: '220px' }}>Title</th>
+            <th className='border border-slate-700 rounded-md text-center max-md:hidden' style={{ width: '180px' }}>Author</th>
+            <th className='border border-slate-700 rounded-md text-center max-md:hidden' style={{ width: '120px' }}>Publish Year</th>
+            <th className='border border-slate-700 rounded-md text-center' style={{ width: '80px' }}>Genre</th>
+            <th className='border border-slate-700 rounded-md text-center' style={{ width: '120px' }}>Operations</th>
           </tr>
         </thead>
         <tbody>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import CreateBook from './pages/CreateBooks';
 import ShowBook from './pages/ShowBook';
@@ -11,16 +11,40 @@ import FineReceipts from './pages/FineReceipts';
 import Report from './pages/Report';
 import Rules from './pages/Rules';
 
+const navItems = [
+  { label: 'Books', path: '/' },
+  { label: 'Members', path: '/members' },
+  { label: 'Borrows', path: '/borrows' },
+  { label: 'Penalty ticket', path: '/fine-receipts' },
+  { label: 'Report', path: '/reports' },
+  { label: 'Rules', path: '/rules' },
+];
+
 const App = () => {
+  const location = useLocation();
+  const isActive = (item) => {
+    if (item.path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(item.path);
+  };
+
   return (
     <>
       <nav style={{ padding: 16, background: '#e3f4fd', marginBottom: 24 }}>
-        <Link to='/' style={{ marginRight: 16 }}>Books</Link>
-        <Link to='/members' style={{ marginRight: 16 }}>Members</Link>
-        <Link to='/borrows' style={{ marginRight: 16 }}>Borrows</Link>
-        <Link to='/fine-receipts' style={{ marginRight: 16 }}>Phiếu phạt</Link>
-        <Link to='/reports' style={{ marginRight: 16 }}>Báo cáo</Link>
-        <Link to='/rules'>Quy định</Link>
+        {navItems.map(item => (
+          <Link
+            key={item.path}
+            to={item.path}
+            style={
+              isActive(item)
+                ? { marginRight: 16, fontWeight: 'bold', color: '#0369a1', borderBottom: '2px solid #0369a1', paddingBottom: 2 }
+                : { marginRight: 16 }
+            }
+          >
+            {item.label}
+          </Link>
+        ))}
       </nav>
       <Routes>
         <Route path='/' element={<Home />} />
